@@ -2,138 +2,24 @@ name: Build
 
 on:
   workflow_dispatch
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  Android:
-    name: Android
+  test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: read
-    outputs:
-      package_version: ${{ steps.package_version.outputs.package_version }}
-      release_tag: ${{ steps.release_target.outputs.release_tag }}
-      release_name: ${{ steps.release_target.outputs.release_name }}
-      release_prerelease: ${{ steps.release_target.outputs.release_prerelease }}
+
     steps:
       - name: Check out git repository
         uses: actions/checkout@v4
 
-      - name: Setup Env
-        uses: ./.github/actions/setup
-
-      - name: Build Packages
-        env:
-          DISABLE_SVG: 1
-        shell: bash
-        run: |
-          cd android
-          # Remove local JDK path for GitHub Actions (use JAVA_HOME set by actions/setup-java)
-          sed -i '/^org.gradle.java.home=/d' gradle.properties
-          chmod +x ./gradlew
-          ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.MYAPP_UPLOAD_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}'
-          rm -f app/${{ secrets.MYAPP_UPLOAD_STORE_FILE }}
-
-      - name: Get package version
-        id: package_version
-        shell: bash
-        run: |
-          PACKAGE_VERSION=$(node -p -e 'require("./package.json").version')
-          echo "PACKAGE_VERSION=${PACKAGE_VERSION}" >> "$GITHUB_ENV"
-          echo "package_version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve release target
-        id: release_target
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          BASE_TAG="v${PACKAGE_VERSION}"
-          if gh release view "${BASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            RELEASE_TAG="${BASE_TAG}-test.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
-            RELEASE_NAME="${BASE_TAG} test ${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
-            RELEASE_PRERELEASE="true"
-          else
-            RELEASE_TAG="${BASE_TAG}"
-            RELEASE_NAME="${BASE_TAG}"
-            RELEASE_PRERELEASE="false"
-          fi
-
-          echo "RELEASE_TAG=${RELEASE_TAG}" >> "$GITHUB_ENV"
-          echo "RELEASE_NAME=${RELEASE_NAME}" >> "$GITHUB_ENV"
-          echo "RELEASE_PRERELEASE=${RELEASE_PRERELEASE}" >> "$GITHUB_ENV"
-          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
-          echo "release_name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "release_prerelease=${RELEASE_PRERELEASE}" >> "$GITHUB_OUTPUT"
-
-      - name: Create git tag
-        shell: bash
-        run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
-            echo "Tag ${RELEASE_TAG} already exists."
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag "${RELEASE_TAG}" "${GITHUB_SHA}"
-            git push origin "refs/tags/${RELEASE_TAG}"
-          fi
-
-      - name: Generate file MD5
-        run: |
-          cd android/app/build/outputs/apk/release
-          md5sum *.apk
-
-      - name: Upload Artifact
-        uses: ./.github/actions/upload-artifact
-        env:
-          PACKAGE_VERSION: ${{ env.PACKAGE_VERSION }}
-
-
-  Release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: [Android]
-    permissions:
-      contents: write
-    steps:
-      - name: Check out git repository
-        uses: actions/checkout@v4
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          path: ./artifacts
-          merge-multiple: true
+          node-version: 20
 
-      - name: Generate release body
-        run: |
-          awk 'BEGIN{RS="---"}{if(NR==1)print $0}' ./publish/changeLog.md > RELEASE_NOTES.md
-          if [ "${{ needs.Android.outputs.release_prerelease }}" = "true" ]; then
-            echo -e '\n### Test Build\nThis prerelease was generated because release `${{ needs.Android.outputs.package_version }}` already exists.\n' >> RELEASE_NOTES.md
-          fi
-          echo -e '\n### File MD5\n```' >> RELEASE_NOTES.md
-          cd artifacts
-          md5sum *.apk >> ../RELEASE_NOTES.md
-          cd ..
-          echo -e '```\n' >> RELEASE_NOTES.md
-          echo -e '\n[软件安装包说明](https://lyswhut.github.io/lx-music-doc/download#%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85%E5%8C%85%E8%AF%B4%E6%98%8E)\n' >> RELEASE_NOTES.md
+      - name: Install Dependencies
+        run: npm ci
 
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: ${{ needs.Android.outputs.release_name }}
-          body_path: RELEASE_NOTES.md
-          prerelease: ${{ needs.Android.outputs.release_prerelease }}
-          draft: false
-          tag_name: ${{ needs.Android.outputs.release_tag }}
-          files: |
-            artifacts/lx-netease-music-mobile-v${{ needs.Android.outputs.package_version }}-arm64-v8a.apk
-            artifacts/lx-netease-music-mobile-v${{ needs.Android.outputs.package_version }}-armeabi-v7a.apk
-            artifacts/lx-netease-music-mobile-v${{ needs.Android.outputs.package_version }}-x86_64.apk
-            artifacts/lx-netease-music-mobile-v${{ needs.Android.outputs.package_version }}-x86.apk
-            artifacts/lx-netease-music-mobile-v${{ needs.Android.outputs.package_version }}-universal.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
+      - name: Eslint check
+        run: npm run lint
+
+      - name: Test Build
+        run: npm run build-test
