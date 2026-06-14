@@ -2,12 +2,16 @@ name: Build
 
 on:
   workflow_dispatch
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   Android:
     name: Android
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: read
     outputs:
       package_version: ${{ steps.package_version.outputs.package_version }}
       release_tag: ${{ steps.release_target.outputs.release_tag }}
@@ -26,6 +30,8 @@ jobs:
         shell: bash
         run: |
           cd android
+          # Remove local JDK path for GitHub Actions (use JAVA_HOME set by actions/setup-java)
+          sed -i '/^org.gradle.java.home=/d' gradle.properties
           echo ${{ secrets.MYAPP_KEYSTORE_BASE64 }} | base64 --decode > app/${{ secrets.MYAPP_UPLOAD_STORE_FILE }}
           chmod +x ./gradlew
           ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.MYAPP_UPLOAD_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}'
@@ -131,3 +137,4 @@ jobs:
             artifacts/lx-netease-music-mobile-v${{ needs.Android.outputs.package_version }}-universal.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
