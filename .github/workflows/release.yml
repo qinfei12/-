@@ -23,8 +23,8 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
       # Push tag to GitHub if package.json version's tag is not tagged
-      - name: Upload APK
+      - name: Upload existing Debug APK
         uses: actions/upload-artifact@v4
         with:
-           name: Release-APK
-           path: app/build/outputs/apk/release/
+         name: Debug-APK
+         path: app/build/outputs/apk/debug/app-debug.apk
