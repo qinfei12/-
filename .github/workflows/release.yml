@@ -7,26 +7,32 @@ jobs:
   Android:
     name: Android
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Checkout code
+      - name: Check out git repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: temurin
+      - name: Setup Env
+        uses: ./.github/actions/setup
 
-      - name: Build Debug APK
+      - name: Build Packages
+        env:
+          DISABLE_SVG: 1
+        shell: bash
         run: |
-          sed -i '/^org.gradle.java.home=/d' gradle.properties
-          chmod +x ./gradlew
-          ./gradlew assembleDebug
+          cd android
+          ./gradlew assembleRelease
+      # Push tag to GitHub if package.json version's tag is not tagged
+      - name: Get package version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Debug-APK
-          path: app/build/outputs/apk/debug/
+      - name: Generate file MD5
+        run: |
+          cd android/app/build/outputs/apk/release
+          md5sum *.apk
+
+      - name: Upload Artifact
+        uses: ./.github/actions/upload-artifact
+        env:
+          PACKAGE_VERSION: ${{ env.PACKAGE_VERSION }}
