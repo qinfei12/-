@@ -21,7 +21,7 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleDebug
       # Push tag to GitHub if package.json version's tag is not tagged
       - name: Get package version
         run: |
