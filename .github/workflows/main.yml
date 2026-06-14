@@ -1,0 +1,37 @@
+name: Verify Keystore
+on: workflow_dispatch
+
+env:
+  # 和你主流程保持一致的Secret名称
+  KS_B64: ${{ secrets.MYAPP_KEYSTORE_BASE64 }}
+  KS_FILE: ${{ secrets.MYAPP_UPLOAD_STORE_FILE }}
+  KS_PASS: ${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}
+  KEY_ALIAS: ${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}
+  KEY_PASS: ${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}
+
+jobs:
+  check-keystore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Decode base64 & check file
+        run: |
+          # 解码密钥文件
+          echo "$KS_B64" | base64 -w 0 --decode > "${KS_FILE}"
+          # 查看文件信息、大小、类型
+          ls -lh "${KS_FILE}"
+          file "${KS_FILE}"
+          
+      - name: Validate keystore
+        run: |
+          # 校验密钥库完整性、别名、密码
+          keytool -list \
+            -keystore "${KS_FILE}" \
+            -storepass "${KS_PASS}" \
+            -alias "${KEY_ALIAS}" \
+            -keypass "${KEY_PASS}"
