@@ -26,8 +26,9 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
-      - name: Upload Debug APKs
+      - name: Split upload all APK
         uses: actions/upload-artifact@v4
         with:
-          name: LX-Netease-Music-Debug-APKs
-          path: android/app/build/outputs/apk/debug/
+          name: APK_
+          path: android/app/build/outputs/apk/debug/*.apk
+          separate-archives: true
