@@ -1,7 +1,10 @@
 name: Build
 
 on:
-  workflow_dispatch:
+  workflow_dispatch
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   Android:
@@ -15,20 +18,16 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Build Packages
+        shell: bash
         env:
           DISABLE_SVG: 1
-        shell: bash
         run: |
           cd android
           chmod +x ./gradlew
           ./gradlew assembleDebug
-           echo "====== 构建结束，查找所有 APK 文件 ======"
-           # 全局搜索所有 .apk 文件，直接打印路径
-           find . -name "*.apk"
-           echo "====== 上面就是所有 APK 的真实路径 ======"
-      - name: Upload APK
+
+      - name: Upload Debug APKs
         uses: actions/upload-artifact@v4
         with:
-           name: Debug-APK
-           # 先不要写死路径，等日志出来后，把 find 命令输出的路径填到这里
-           path:  # 留空，等你复制日志里的真实路径
+          name: LX-Netease-Music-Debug-APKs
+          path: android/app/build/outputs/apk/debug/
