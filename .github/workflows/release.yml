@@ -1,40 +1,32 @@
 name: Build
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
+
 jobs:
   Android:
     name: Android
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Check out git repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Env
-        uses: ./.github/actions/setup
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
 
-      - name: Build Packages
-        env:
-          DISABLE_SVG: 1
-        shell: bash
+      - name: Build Debug APK
         run: |
-          cd android
-          echo ${{ secrets.KEYSTORE_STORE_FILE_BASE64 }} | base64 --decode > app/${{ secrets.KEYSTORE_STORE_FILE }}
-          ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.KEYSTORE_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.KEYSTORE_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.KEYSTORE_KEY_PASSWORD }}'
-          rm -f app/${{ secrets.KEYSTORE_STORE_FILE }}
+          sed -i '/^org.gradle.java.home=/d' gradle.properties
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
 
-      # Push tag to GitHub if package.json version's tag is not tagged
-      - name: Get package version
-        run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
-
-      - name: Generate file MD5
-        run: |
-          cd android/app/build/outputs/apk/release
-          md5sum *.apk
-
-      - name: Upload Artifact
-        uses: ./.github/actions/upload-artifact
-        env:
-          PACKAGE_VERSION: ${{ env.PACKAGE_VERSION }}
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Debug-APK
+          path: app/build/outputs/apk/debug/
