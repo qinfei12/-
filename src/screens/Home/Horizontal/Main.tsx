@@ -45,6 +45,8 @@ const Main = () => {
         return <SubscribedAlbums />
       case 'nav_onedrive':
         return <OneDrive />
+      case 'nav_webdav':
+        return <WebDAV />
       case 'nav_love':
         return <Mylist />
       case 'nav_setting':
