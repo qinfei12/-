@@ -23,17 +23,8 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
       # Push tag to GitHub if package.json version's tag is not tagged
-      - name: Get package version
-        run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
-
-      - name: Generate file MD5
-        run: |
-          cd android/app/build/outputs/apk/release
-          md5sum *.apk
-
-      - name: Upload Artifact
-        uses: ./.github/actions/upload-artifact
-        env:
-          PACKAGE_VERSION: ${{ env.PACKAGE_VERSION }}
+      - name: Upload APK
+         uses: actions/upload-artifact@v4
+         with:
+           name: Release-APK
+           path: app/build/outputs/apk/release/
