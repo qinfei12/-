@@ -25,10 +25,16 @@ jobs:
           cd android
           chmod +x ./gradlew
           ./gradlew assembleDebug
+          # 输出 APK 列表给后续步骤用
+          ls -1 android/app/build/outputs/apk/debug/*.apk > apk_list.txt
 
-      - name: Split upload all APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: APK_
-          path: android/app/build/outputs/apk/debug/*.apk
-          separate-archives: true
+      - name: Upload APKs individually
+        shell: bash
+        run: |
+          while read -r apk_path; do
+            apk_name=$(basename "$apk_path" .apk)
+            echo "Uploading $apk_path as $apk_name"
+            gh run upload-artifact -n "$apk_name" "$apk_path"
+          done < apk_list.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
