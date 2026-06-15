@@ -1,24 +1,40 @@
-name: Test Raw Base64
+name: Test Read Secrets
 on: workflow_dispatch
 
+env:
+  # 和原项目变量名完全保持一致
+  MYAPP_KEYSTORE_BASE64: ${{ secrets.MYAPP_KEYSTORE_BASE64 }}
+  MYAPP_UPLOAD_STORE_FILE: ${{ secrets.MYAPP_UPLOAD_STORE_FILE }}
+  MYAPP_UPLOAD_STORE_PASSWORD: ${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}
+  MYAPP_UPLOAD_KEY_ALIAS: ${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}
+  MYAPP_UPLOAD_KEY_PASSWORD: ${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}
+
 jobs:
-  test:
+  check_secrets:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup JDK 11
-        uses: actions/setup-java@v4
-        with:
-          java-version: '11'
-          distribution: 'temurin'
-
-      - name: Direct decode hardcoded base64
+      - name: Check all secret variables
         run: |
-          cat << 'EOF' | base64 -w 0 --decode > test-key.p12
-          <<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>>
-          EOF
-          ls -lh test-key.p12
-          file test-key.p12
+          echo "===== 变量读取检查 ====="
+          echo "MYAPP_UPLOAD_STORE_FILE = $MYAPP_UPLOAD_STORE_FILE"
+          echo "MYAPP_UPLOAD_KEY_ALIAS = $MYAPP_UPLOAD_KEY_ALIAS"
+          
+          # 检查密码类是否非空（不打印明文，只判断是否存在）
+          if [ -z "$MYAPP_UPLOAD_STORE_PASSWORD" ]; then
+            echo "❌ MYAPP_UPLOAD_STORE_PASSWORD 为空！"
+          else
+            echo "✅ MYAPP_UPLOAD_STORE_PASSWORD 已读取（非空）"
+          fi
 
-      - name: Validate keystore
-        run: |
-          keytool -list -keystore test-key.p12 -storepass <<k5581783>> -alias <<feiyu666>>
+          if [ -z "$MYAPP_UPLOAD_KEY_PASSWORD" ]; then
+            echo "❌ MYAPP_UPLOAD_KEY_PASSWORD 为空！"
+          else
+            echo "✅ MYAPP_UPLOAD_KEY_PASSWORD 已读取（非空）"
+          fi
+
+          # 检查Base64密钥串是否非空
+          if [ -z "$MYAPP_KEYSTORE_BASE64" ]; then
+            echo "❌ MYAPP_KEYSTORE_BASE64 为空！"
+          else
+            echo "✅ MYAPP_KEYSTORE_BASE64 已读取（非空），长度：${#MYAPP_KEYSTORE_BASE64}"
+          fi
