@@ -1,40 +1,34 @@
-name: Test Read Secrets
+name: Test Secrets Direct
 on: workflow_dispatch
 
-env:
-  # 和原项目变量名完全保持一致
-  MYAPP_KEYSTORE_BASE64: ${{ secrets.MYAPP_KEYSTORE_BASE64 }}
-  MYAPP_UPLOAD_STORE_FILE: ${{ secrets.MYAPP_UPLOAD_STORE_FILE }}
-  MYAPP_UPLOAD_STORE_PASSWORD: ${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}
-  MYAPP_UPLOAD_KEY_ALIAS: ${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}
-  MYAPP_UPLOAD_KEY_PASSWORD: ${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}
-
 jobs:
-  check_secrets:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check all secret variables
+      - name: Read & Check All Secrets
         run: |
-          echo "===== 变量读取检查 ====="
-          echo "MYAPP_UPLOAD_STORE_FILE = $MYAPP_UPLOAD_STORE_FILE"
-          echo "MYAPP_UPLOAD_KEY_ALIAS = $MYAPP_UPLOAD_KEY_ALIAS"
-          
-          # 检查密码类是否非空（不打印明文，只判断是否存在）
-          if [ -z "$MYAPP_UPLOAD_STORE_PASSWORD" ]; then
-            echo "❌ MYAPP_UPLOAD_STORE_PASSWORD 为空！"
+          # 文件名
+          echo "STORE_FILE: ${{ secrets.MYAPP_UPLOAD_STORE_FILE }}"
+          # 别名
+          echo "KEY_ALIAS: ${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}"
+
+          # 判断密码是否存在（不打印明文）
+          if [ -z "${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}" ]; then
+            echo "❌ 库密码为空"
           else
-            echo "✅ MYAPP_UPLOAD_STORE_PASSWORD 已读取（非空）"
+            echo "✅ 库密码正常"
           fi
 
-          if [ -z "$MYAPP_UPLOAD_KEY_PASSWORD" ]; then
-            echo "❌ MYAPP_UPLOAD_KEY_PASSWORD 为空！"
+          if [ -z "${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}" ]; then
+            echo "❌ 密钥密码为空"
           else
-            echo "✅ MYAPP_UPLOAD_KEY_PASSWORD 已读取（非空）"
+            echo "✅ 密钥密码正常"
           fi
 
-          # 检查Base64密钥串是否非空
-          if [ -z "$MYAPP_KEYSTORE_BASE64" ]; then
-            echo "❌ MYAPP_KEYSTORE_BASE64 为空！"
+          # 判断Base64密钥串
+          b64="${{ secrets.MYAPP_KEYSTORE_BASE64 }}"
+          if [ -z "$b64" ]; then
+            echo "❌ 密钥Base64为空"
           else
-            echo "✅ MYAPP_KEYSTORE_BASE64 已读取（非空），长度：${#MYAPP_KEYSTORE_BASE64}"
+            echo "✅ 密钥Base64正常，字符长度：${#b64}"
           fi
